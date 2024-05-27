@@ -5,8 +5,8 @@ use std::option::Option;
 use chrono::{DateTime, FixedOffset, Local};
 use std::fs::{OpenOptions, File};
 use std::io::prelude::*;
-use std::path::PathBuf;
 use dirs::home_dir;
+use std::vec::Vec;
 
 const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 const APP_DATA: &str = ".taskman/tasks.csv";
@@ -26,7 +26,7 @@ impl Task {
             self.name, 
             self.cost, 
             self.priority, 
-            self.date_created, 
+            self.date_created.to_rfc3339(), 
             match self.deadline {
                 Some(date) => date.to_rfc3339(),
                 None => String::from("")
@@ -42,18 +42,30 @@ impl Task {
     }
 }
 
-fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
-    return match args.get_one::<String>(arg_name) {
-        Some(value) => String::from(value),
-        None => panic!("expected to find a value")
+fn write_task(task: Task) {
+    match home_dir() {
+        Some(mut path) => {
+            path.push(APP_DATA);
+            match OpenOptions::new().write(true).append(true).open(path.as_path()) {
+                Ok(mut file) => {
+                    task.write(&mut file);
+                }
+                Err(error) => {
+                    let path_as_str = path.as_path().to_str().unwrap();
+                    eprintln!("file write error, {error}, {path_as_str}");
+                }
+            }
+        },
+        None => panic!("cannot find home directory"),
     };
 }
 
+fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
+    return String::from(args.get_one::<String>(arg_name).unwrap());
+}
+
 fn get_u32_arg(args: &ArgMatches, arg_name: &str) -> u32 { 
-    return match args.get_one::<u32>(arg_name) {
-        Some(value) => *value,
-        None => panic!("expected to find a value")
-    };
+    return *args.get_one::<u32>(arg_name).unwrap(); 
 }
 
 fn append_midnight_if_no_time(date_maybe_time: String) -> String {
@@ -123,21 +135,7 @@ fn build_task(args: &ArgMatches) -> Task {
 
 fn add(args: &ArgMatches) {
     let task: Task = build_task(args);
-    match home_dir() {
-        Some(mut path) => {
-            path.push(APP_DATA);
-            match OpenOptions::new().write(true).append(true).open(path.as_path()) {
-                Ok(mut file) => {
-                    task.write(&mut file);
-                }
-                Err(error) => {
-                    let path_as_str = path.as_path().to_str().unwrap();
-                    eprintln!("file write error, {error}, {path_as_str}");
-                }
-            }
-        },
-        None => panic!("cannot find home directory"),
-    };
+    write_task(task);
 }
 
 fn delete(args: &ArgMatches) {
@@ -153,15 +151,11 @@ fn main() {
     let cmd = clap::Command::new("cmd")
         .subcommand_required(true)
         .subcommand( Command::new("add")
-            .about("")
-            .arg(Arg::new("name")
-                .short('n')
-                .long("name")
+            .about("add a new task")
+            .arg(arg!(-n --name "name of the new task")
                 .action(ArgAction::Set)
-                .value_name("name")
                 .required(true)
-                .help("name of the new task")
-                .value_parser(clap::builder::NonEmptyStringValueParser::new()))
+                .value_parser(clap::value_parser!(String)))
             .arg(arg!(-c --cost "the expected time in minutes that this task will take")
                 .required(true)
                 .value_parser(clap::value_parser!(u32))
@@ -182,12 +176,15 @@ fn main() {
             )
         .subcommand(Command::new("delete").about(""))
         .subcommand(Command::new("complete").about(""))
-        .subcommand(Command::new("show").about("")
+        .subcommand(Command::new("show").about("display tasks")
             .arg(arg!(-n --number "number of tasks to show")
                 .default_value("5")
                 .value_parser(clap::value_parser!(u32))
-                .action(ArgAction::Set)
-        ));
+                .action(ArgAction::Set))
+            .arg(arg!(-a --all "show all tasks")
+                .value_parser(clap::value_parser!(u32))
+                .action(ArgAction::SetTrue))
+            );
 
     let matches = cmd.get_matches();
     match matches.subcommand() {
