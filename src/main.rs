@@ -6,24 +6,46 @@ use chrono::{DateTime, FixedOffset, Local};
 use std::fs::{OpenOptions, File};
 use std::io::prelude::*;
 use dirs::home_dir;
-use std::vec::Vec;
 
 const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
 const APP_DATA: &str = ".taskman/tasks.csv";
+
+#[derive(Debug)]
+enum Completed {
+    YES,
+    NO
+}
+
+impl std::fmt::Display for Completed {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let value: char = match self {
+            Completed::YES => 'y',
+            Completed::NO => 'n'
+        };
+        write!(f, "{}", value)
+    }
+}
 
 #[derive(Debug)]
 struct Task {
     name: String,
     cost: u32,
     priority: u32,
+    completed: Completed,
+    description: Option<String>,
     date_created: DateTime::<FixedOffset>,
     deadline: Option<DateTime::<FixedOffset>>,
 }
 
 impl Task {
     fn as_string(&self) -> String {
-        return format!("{0},{1},{2},{3},{4}", 
+        return format!("{0},{1},{2},{3},{4},{5},{6}", 
+            self.completed,
             self.name, 
+            match &self.description {
+                Some(desc) => desc, 
+                None => "" 
+            },
             self.cost, 
             self.priority, 
             self.date_created.to_rfc3339(), 
@@ -124,9 +146,13 @@ fn build_task(args: &ArgMatches) -> Task {
         &get_datetime
     );
 
+    let description = get_optional::<String>(args, "description", &get_string_arg);
+
     return Task {
         name: name,
         cost: cost,
+        description: description,
+        completed: Completed::NO,
         priority: priority,
         date_created: DateTime::from(Local::now()),
         deadline: deadline 
@@ -153,25 +179,23 @@ fn main() {
         .subcommand( Command::new("add")
             .about("add a new task")
             .arg(arg!(-n --name "name of the new task")
+                .required(true)
+                .action(ArgAction::Set))
+            .arg(arg!(-e --description "description of this task")
+                .action(ArgAction::Set))
+            .arg(arg!(-c --cost "the expected time in minutes that this task will take")
                 .action(ArgAction::Set)
                 .required(true)
-                .value_parser(clap::value_parser!(String)))
-            .arg(arg!(-c --cost "the expected time in minutes that this task will take")
-                .required(true)
-                .value_parser(clap::value_parser!(u32))
-                .action(ArgAction::Set))
+                .value_parser(clap::value_parser!(u32)))
             .arg(arg!(-p --priority 
-                    "an arbitrary number representing the importance of completing this task"
-                )
+                    "an arbitrary number representing the importance of completing this task")
+                .action(ArgAction::Set)
                 .required(true)
-                .value_parser(clap::value_parser!(u32))
-                .action(ArgAction::Set))
+                .value_parser(clap::value_parser!(u32)))
             .arg(arg!(-d --deadline
                     "when this task needs to be completed, in format 
                     yyyy-dd-mmThh::mm::ss in military time (always assumes local timezone)"
                 )
-                .required(false)
-                .value_parser(clap::value_parser!(String))
                 .action(ArgAction::Set))
             )
         .subcommand(Command::new("delete").about(""))
