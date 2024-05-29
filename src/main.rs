@@ -1,86 +1,14 @@
-use clap::{arg, Arg, ArgAction, ArgMatches, Command};
+use clap::{arg, ArgAction, ArgMatches, Command};
+use task::task::Completed;
 use std::string::String;
-use std::fmt::Debug;
 use std::option::Option;
 use chrono::{DateTime, FixedOffset, Local};
-use std::fs::{OpenOptions, File};
-use std::io::prelude::*;
-use dirs::home_dir;
+
+use crate::task::task::Task;
+mod task;
+mod db;
 
 const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
-const APP_DATA: &str = ".taskman/tasks.csv";
-
-#[derive(Debug)]
-enum Completed {
-    YES,
-    NO
-}
-
-impl std::fmt::Display for Completed {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let value: char = match self {
-            Completed::YES => 'y',
-            Completed::NO => 'n'
-        };
-        write!(f, "{}", value)
-    }
-}
-
-#[derive(Debug)]
-struct Task {
-    name: String,
-    cost: u32,
-    priority: u32,
-    completed: Completed,
-    description: Option<String>,
-    date_created: DateTime::<FixedOffset>,
-    deadline: Option<DateTime::<FixedOffset>>,
-}
-
-impl Task {
-    fn as_string(&self) -> String {
-        return format!("{0},{1},{2},{3},{4},{5},{6}", 
-            self.completed,
-            self.name, 
-            match &self.description {
-                Some(desc) => desc, 
-                None => "" 
-            },
-            self.cost, 
-            self.priority, 
-            self.date_created.to_rfc3339(), 
-            match self.deadline {
-                Some(date) => date.to_rfc3339(),
-                None => String::from("")
-            }
-        );
-    }
-
-    fn write(&self, file: &mut File) {
-        match writeln!(file, "{0}", self.as_string()) { 
-            Ok(_value) => println!("added new task {:?}", self),
-            Err(error) => eprintln!("failed to write new task, {error}")
-        };
-    }
-}
-
-fn write_task(task: Task) {
-    match home_dir() {
-        Some(mut path) => {
-            path.push(APP_DATA);
-            match OpenOptions::new().write(true).append(true).open(path.as_path()) {
-                Ok(mut file) => {
-                    task.write(&mut file);
-                }
-                Err(error) => {
-                    let path_as_str = path.as_path().to_str().unwrap();
-                    eprintln!("file write error, {error}, {path_as_str}");
-                }
-            }
-        },
-        None => panic!("cannot find home directory"),
-    };
-}
 
 fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
     return String::from(args.get_one::<String>(arg_name).unwrap());
@@ -146,22 +74,16 @@ fn build_task(args: &ArgMatches) -> Task {
         &get_datetime
     );
 
-    let description = get_optional::<String>(args, "description", &get_string_arg);
+    let desc = get_optional::<String>(args, "description", &get_string_arg);
+    let completed = Completed::NO;
+    let date_created = DateTime::from(Local::now());
 
-    return Task {
-        name: name,
-        cost: cost,
-        description: description,
-        completed: Completed::NO,
-        priority: priority,
-        date_created: DateTime::from(Local::now()),
-        deadline: deadline 
-    };
+    return Task::new(completed, name, desc, cost, priority, date_created, deadline);
 }
 
 fn add(args: &ArgMatches) {
     let task: Task = build_task(args);
-    write_task(task);
+    crate::db::db::write_task(task);
 }
 
 fn delete(args: &ArgMatches) {
@@ -206,7 +128,6 @@ fn main() {
                 .value_parser(clap::value_parser!(u32))
                 .action(ArgAction::Set))
             .arg(arg!(-a --all "show all tasks")
-                .value_parser(clap::value_parser!(u32))
                 .action(ArgAction::SetTrue))
             );
 
