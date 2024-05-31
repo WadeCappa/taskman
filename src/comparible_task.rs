@@ -19,7 +19,7 @@ pub mod comparible_task {
         }
 
         pub fn as_string(&self) -> String {
-            return format!("{0}) {1}", self.index, self.task.as_string());
+            return format!("{0}) {1} with score of {2}", self.index, self.task.as_string(), self.comparitor);
         }
     }
 

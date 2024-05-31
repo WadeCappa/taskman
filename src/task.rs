@@ -94,8 +94,8 @@ pub mod task {
             let priority = data[4].parse::<u32>().unwrap();
             let created = DateTime::parse_from_rfc3339(data[5]).unwrap();
             let deadline = match data[6].is_empty() {
-                true => Some(DateTime::parse_from_rfc3339(data[5]).unwrap()),
-                false => None
+                true => None,
+                false => Some(DateTime::parse_from_rfc3339(data[6]).unwrap())
             };
         
             return Task::new(comp, name, desc, cost, priority, created, deadline);
@@ -103,13 +103,10 @@ pub mod task {
 
         pub fn make_comparible(tasks: Vec::<Task>) -> BinaryHeap::<ComparibleTask> {
             let tasks_ref = &tasks;
-            let total_prio_squared: u32 = match tasks_ref 
+            let total_prio_squared: u32 = tasks_ref 
                 .into_iter()
                 .map(|task: &Task| task.priority)
-                .reduce(|acc, e| acc + e.pow(2)) {
-                Some(res) => res,
-                None => 0
-            };
+                .fold(0, |acc, e| acc + e.pow(2));
 
             let mut heap = BinaryHeap::new();
 
@@ -122,12 +119,13 @@ pub mod task {
 
         fn as_comparible_task(self, total_prio_squared: u32, index: usize) -> ComparibleTask {
             let normalized: f64 = f64::from(self.priority.pow(2)) / f64::from(total_prio_squared).sqrt();
-            let roi = normalized / f64::from(self.cost);
+            let roi : f64 = normalized / f64::from(self.cost);
             if self.deadline.is_none() {
                 return ComparibleTask::new(self, roi, index);
             } else {
                 let now = Local::now();
-                let minutes = Ord::max(self.deadline.unwrap().signed_duration_since(now).num_minutes(), 0);
+                let calc_time = self.deadline.unwrap().signed_duration_since(now).num_minutes();
+                let minutes: i64 = Ord::max(calc_time, 1);
                 return ComparibleTask::new(self, roi + (60.0 / minutes as f64), index);
             }
         }
