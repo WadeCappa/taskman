@@ -2,10 +2,14 @@ use clap::{arg, ArgAction, ArgMatches, Command};
 use task::task::Completed;
 use std::string::String;
 use std::option::Option;
+use std::collections::BinaryHeap;
 use chrono::{DateTime, FixedOffset, Local};
 
 use crate::task::task::Task;
+use crate::comparible_task::comparible_task::ComparibleTask;
+
 mod task;
+mod comparible_task;
 mod db;
 
 const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
@@ -93,6 +97,18 @@ fn complete(args: &ArgMatches) {
 }
 
 fn show(args: &ArgMatches) {
+    let tasks: Vec::<Task> = crate::db::db::get_tasks();
+    let mut comparible_tasks: BinaryHeap::<ComparibleTask> = Task::make_comparible(tasks);
+
+    let total = match args.get_flag("all") {
+        true => comparible_tasks.len(),
+        false => usize::min(get_u32_arg(args, "number") as usize, comparible_tasks.len())
+    };
+
+    for i in 0..total {
+        let task: ComparibleTask = comparible_tasks.pop().unwrap();
+        println!("{0}", task.as_string());
+    }
 }
 
 fn main() {
@@ -105,7 +121,7 @@ fn main() {
                 .action(ArgAction::Set))
             .arg(arg!(-e --description "description of this task")
                 .action(ArgAction::Set))
-            .arg(arg!(-c --cost "the expected time in minutes that this task will take")
+            .arg(arg!(-c --cost "the expected time in *minutes* that this task will take")
                 .action(ArgAction::Set)
                 .required(true)
                 .value_parser(clap::value_parser!(u32)))

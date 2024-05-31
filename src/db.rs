@@ -3,7 +3,6 @@ pub mod db {
     use std::fs;
     use dirs::home_dir;
     use std::io::prelude::*;
-    use std::collections::BinaryHeap;
     use std::io;
 
     const APP_DATA: &str = ".taskman/tasks.csv";
@@ -25,12 +24,12 @@ pub mod db {
         }
     }
 
-    pub fn get_tasks(quantity: u32) -> BinaryHeap::<Task> {
-        let lines = get_lines();
-        // convert all to intermediary datastructure, 
-        // calculate prioirty
-        // return priority queue
-        return BinaryHeap::new();
+    pub fn get_tasks() -> Vec::<Task> {
+        return get_lines()
+            .flatten()
+            .into_iter()
+            .map(|line| Task::from_string(line))
+            .collect();
     }
 
     pub fn get_lines() -> io::Lines<io::BufReader<fs::File>> {

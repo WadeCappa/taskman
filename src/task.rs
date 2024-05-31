@@ -2,8 +2,11 @@
 
 pub mod task {
     use std::fmt::Debug;
-    use core::cmp::Ordering;
     use chrono::{DateTime, FixedOffset};
+    use std::collections::BinaryHeap;
+    use chrono::Local;
+
+    use crate::comparible_task::comparible_task::ComparibleTask;
 
     #[derive(Debug)]
     pub enum Completed {
@@ -81,7 +84,7 @@ pub mod task {
             );
         }
 
-        fn from_string(string: String) -> Task {
+        pub fn from_string(string: String) -> Task {
             let data: Vec<&str> = string.split(",").collect();
 
             let comp = Completed::from_string(data[0]);
@@ -97,28 +100,36 @@ pub mod task {
         
             return Task::new(comp, name, desc, cost, priority, created, deadline);
         }
-    }
 
-    impl Ord for Task {
-        fn cmp(&self, other: &Self) -> Ordering {
-            return self.priority.cmp(&other.priority);
+        pub fn make_comparible(tasks: Vec::<Task>) -> BinaryHeap::<ComparibleTask> {
+            let tasks_ref = &tasks;
+            let total_prio_squared: u32 = match tasks_ref 
+                .into_iter()
+                .map(|task: &Task| task.priority)
+                .reduce(|acc, e| acc + e.pow(2)) {
+                Some(res) => res,
+                None => 0
+            };
+
+            let mut heap = BinaryHeap::new();
+
+            for (i, task) in tasks.into_iter().enumerate() {
+                heap.push(task.as_comparible_task(total_prio_squared, i));
+            }
+;
+            return heap;
         }
-    }
 
-    impl PartialOrd for Task {
-        fn partial_cmp(&self, other: &Task) -> Option<Ordering> {
-            return Some(self.cmp(other));
-        }
-    }
-
-    impl Eq for Task {
-        
-    }
-
-    impl PartialEq for Task {
-        fn eq(&self, other: &Task) -> bool {
-            return self == other;
+        fn as_comparible_task(self, total_prio_squared: u32, index: usize) -> ComparibleTask {
+            let normalized: f64 = f64::from(self.priority.pow(2)) / f64::from(total_prio_squared).sqrt();
+            let roi = normalized / f64::from(self.cost);
+            if self.deadline.is_none() {
+                return ComparibleTask::new(self, roi, index);
+            } else {
+                let now = Local::now();
+                let minutes = Ord::max(self.deadline.unwrap().signed_duration_since(now).num_minutes(), 0);
+                return ComparibleTask::new(self, roi + (60.0 / minutes as f64), index);
+            }
         }
     }
 }
-
