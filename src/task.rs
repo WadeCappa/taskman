@@ -3,10 +3,8 @@
 pub mod task {
     use std::fmt::Debug;
     use chrono::{DateTime, FixedOffset};
-    use std::collections::BinaryHeap;
     use chrono::Local;
     use serde::{Deserialize, Serialize};
-    use chrono::serde::ts_seconds_option;
 
     use crate::comparible_task::comparible_task::ComparibleTask;
 
@@ -55,38 +53,61 @@ pub mod task {
             };
         }
 
-        pub fn as_readible_string(&self) -> String {
-            return format!("{0}, {1}, {2}, {3}, {4}, {5}, {6}", 
-                self.name, 
-                match &self.desc {
-                    Some(desc) => desc, 
-                    None => "" 
-                },
-                self.status,
-                self.cost, 
-                self.priority, 
-                self.date_created.to_rfc2822(), 
-                match self.deadline {
-                    Some(date) => date.to_rfc2822(),
-                    None => String::from("")
-                }
-            );
+        pub fn as_row(&self, verbose: bool) -> Vec::<String> {
+            let name = self.name.to_string();
+            let desc : String = match &self.desc {
+                Some(v) => v.to_string(), 
+                None => "".to_string() 
+            };
+            let status = self.status.to_string();
+            let cost = self.cost.to_string();
+            let priority = self.priority.to_string();
+            let date = self.date_created.to_rfc2822();
+            let deadline = match self.deadline {
+                Some(date) => date.to_rfc2822(),
+                None => String::from("")
+            };
+
+            let mut res: Vec::<String> = vec![name, cost, priority, status, deadline];
+
+            if verbose {
+                res.push(desc);
+                res.push(date);
+            } 
+
+            return res;
         }
 
-        pub fn make_comparible(tasks: Vec::<Task>) -> BinaryHeap::<ComparibleTask> {
+        pub fn get_cols(verbose: bool) -> Vec::<String> {
+            let mut res: Vec::<String> = vec!["name", "cost", "priority", "status", "deadline"]
+                .into_iter()
+                .map(|str| str.to_string())
+                .collect();
+
+            if verbose {
+                res.push("description".to_string());
+                res.push("date_created".to_string());
+            }
+
+            return res;
+        }
+
+        pub fn make_comparible(tasks: Vec::<Task>) -> Vec::<ComparibleTask> {
             let tasks_ref = &tasks;
             let total_prio_squared: u32 = tasks_ref 
                 .into_iter()
                 .map(|task: &Task| task.priority)
                 .fold(0, |acc, e| acc + e.pow(2));
 
-            let mut heap = BinaryHeap::new();
+            let mut comp_tasks: Vec::<ComparibleTask> = tasks
+                .into_iter()
+                .enumerate()
+                .map(|(i, task)| task.as_comparible_task(total_prio_squared, i))
+                .collect();
 
-            for (i, task) in tasks.into_iter().enumerate() {
-                heap.push(task.as_comparible_task(total_prio_squared, i));
-            }
-;
-            return heap;
+            comp_tasks.sort();
+            comp_tasks.reverse();
+            return comp_tasks;
         }
 
         fn as_comparible_task(self, total_prio_squared: u32, index: usize) -> ComparibleTask {

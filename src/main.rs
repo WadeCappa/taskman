@@ -2,7 +2,7 @@ use clap::{arg, ArgAction, ArgMatches, Command};
 use task::task::Status;
 use std::string::String;
 use std::option::Option;
-use std::collections::BinaryHeap;
+use tabled::{builder::Builder, settings::Style};
 use chrono::{DateTime, FixedOffset, Local};
 
 use crate::task::task::Task;
@@ -97,18 +97,22 @@ fn complete(args: &ArgMatches) {
 }
 
 fn show(args: &ArgMatches) {
-    let tasks: Vec::<Task> = crate::db::db::get_tasks();
-    let mut comparible_tasks: BinaryHeap::<ComparibleTask> = Task::make_comparible(tasks);
-
     let total = match args.get_flag("all") {
-        true => comparible_tasks.len(),
-        false => usize::min(get_u32_arg(args, "number") as usize, comparible_tasks.len())
+        true => usize::MAX,
+        false => get_u32_arg(args, "number") as usize
     };
 
-    for i in 0..total {
-        let task: ComparibleTask = comparible_tasks.pop().unwrap();
-        println!("{0}", task.as_string());
-    }
+    let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total);
+    let verbose: bool = args.get_flag("verbose");
+
+    let mut builder = Builder::default();
+
+    ComparibleTask::add_tasks_to_table(tasks, &mut builder, verbose);
+
+    let mut table = builder.build();
+    table.with(Style::ascii_rounded());
+
+    println!("{table}");
 }
 
 fn main() {

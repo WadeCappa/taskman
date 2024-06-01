@@ -3,9 +3,12 @@
 pub mod comparible_task {
     use core::cmp::Ordering;
     use colored::Colorize;
+    use serde::{Deserialize, Serialize};
+    use tabled::builder::Builder;
 
     use crate::task::task::Task;
 
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct ComparibleTask {
         task: Task,
         index: usize,
@@ -19,8 +22,42 @@ pub mod comparible_task {
             };
         }
 
-        pub fn as_string(&self) -> String {
-            return format!("task {0} |\t{1}", self.index.to_string().red(), self.task.as_readible_string());
+        pub fn add_tasks_to_table(
+            tasks: Vec::<ComparibleTask>,
+            builder: & mut Builder, 
+            verbose: bool
+        ) {
+            builder.push_record(ComparibleTask::get_cols(verbose));
+            for task in tasks {
+                builder.push_record(task.to_row(verbose));
+            }
+        }
+
+        fn get_cols(verbose: bool) -> Vec::<String> {
+            let mut res: Vec::<String> = vec!["index".to_string()];
+            let mut task_cols: Vec::<String> = Task::get_cols(verbose);
+
+            res.append(&mut task_cols);
+
+            if verbose {
+                res.push("score".to_string());
+            }
+
+            return res;
+        }
+
+        fn to_row(&self, verbose: bool) -> Vec::<String> {
+            let mut res: Vec::<String> = vec![self.index.to_string()];
+
+            let mut task_vals: Vec::<String> = self.task.as_row(verbose);
+
+            res.append(&mut task_vals);
+
+            if verbose {
+                res.push(self.comparitor.to_string());
+            }
+
+            return res;
         }
     }
 
