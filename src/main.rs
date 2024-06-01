@@ -1,5 +1,5 @@
 use clap::{arg, ArgAction, ArgMatches, Command};
-use task::task::Completed;
+use task::task::Status;
 use std::string::String;
 use std::option::Option;
 use std::collections::BinaryHeap;
@@ -79,7 +79,7 @@ fn build_task(args: &ArgMatches) -> Task {
     );
 
     let desc = get_optional::<String>(args, "description", &get_string_arg);
-    let completed = Completed::NO;
+    let completed = Status::Queued;
     let date_created = DateTime::from(Local::now());
 
     return Task::new(completed, name, desc, cost, priority, date_created, deadline);
@@ -144,6 +144,8 @@ fn main() {
                 .value_parser(clap::value_parser!(u32))
                 .action(ArgAction::Set))
             .arg(arg!(-a --all "show all tasks")
+                .action(ArgAction::SetTrue))
+            .arg(arg!(-v --verbose "show all task information")
                 .action(ArgAction::SetTrue))
             );
 

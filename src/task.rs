@@ -5,38 +5,27 @@ pub mod task {
     use chrono::{DateTime, FixedOffset};
     use std::collections::BinaryHeap;
     use chrono::Local;
+    use serde::{Deserialize, Serialize};
+    use chrono::serde::ts_seconds_option;
 
     use crate::comparible_task::comparible_task::ComparibleTask;
 
-    #[derive(Debug)]
-    pub enum Completed {
-        YES,
-        NO
+    #[derive(Serialize, Deserialize, Debug)]
+    pub enum Status {
+        InProgress,
+        Completed, 
+        Queued 
     }
 
-    impl Completed {
-        fn from_string(string: &str) -> Completed {
-            match string {
-                "y" => Completed::YES,
-                "n" => Completed::NO,
-                _ => panic!("bad input")
-            }
-        }
-    }
-
-    impl std::fmt::Display for Completed {
+    impl std::fmt::Display for Status {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            let value: char = match self {
-                Completed::YES => 'y',
-                Completed::NO => 'n'
-            };
-            write!(f, "{}", value)
+            write!(f, "{:?}", self)
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct Task {
-        completed: Completed,
+        status: Status,
         name: String,
         desc: Option<String>,
         cost: u32,
@@ -47,7 +36,7 @@ pub mod task {
 
     impl Task {
         pub fn new(
-            completed: Completed, 
+            status: Status, 
             name: String, 
             desc: Option<String>,
             cost: u32, 
@@ -56,7 +45,7 @@ pub mod task {
             deadline: Option<DateTime::<FixedOffset>>
         ) -> Task {
             return Task {
-                completed: completed,
+                status: status,
                 name: name,
                 desc: desc,
                 cost: cost,
@@ -66,39 +55,22 @@ pub mod task {
             };
         }
 
-        pub fn as_string(&self) -> String {
-            return format!("{0},{1},{2},{3},{4},{5},{6}", 
-                self.completed,
+        pub fn as_readible_string(&self) -> String {
+            return format!("{0}, {1}, {2}, {3}, {4}, {5}, {6}", 
                 self.name, 
                 match &self.desc {
                     Some(desc) => desc, 
                     None => "" 
                 },
+                self.status,
                 self.cost, 
                 self.priority, 
-                self.date_created.to_rfc3339(), 
+                self.date_created.to_rfc2822(), 
                 match self.deadline {
-                    Some(date) => date.to_rfc3339(),
+                    Some(date) => date.to_rfc2822(),
                     None => String::from("")
                 }
             );
-        }
-
-        pub fn from_string(string: String) -> Task {
-            let data: Vec<&str> = string.split(",").collect();
-
-            let comp = Completed::from_string(data[0]);
-            let name = String::from(data[1]);
-            let desc = Some(String::from(data[2]));
-            let cost = data[3].parse::<u32>().unwrap();
-            let priority = data[4].parse::<u32>().unwrap();
-            let created = DateTime::parse_from_rfc3339(data[5]).unwrap();
-            let deadline = match data[6].is_empty() {
-                true => None,
-                false => Some(DateTime::parse_from_rfc3339(data[6]).unwrap())
-            };
-        
-            return Task::new(comp, name, desc, cost, priority, created, deadline);
         }
 
         pub fn make_comparible(tasks: Vec::<Task>) -> BinaryHeap::<ComparibleTask> {

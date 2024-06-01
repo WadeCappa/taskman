@@ -12,7 +12,7 @@ pub mod db {
         path.push(APP_DATA);
         match fs::OpenOptions::new().write(true).append(true).open(path.as_path()) {
             Ok(mut file) => {
-                match writeln!(file, "{0}", task.as_string()) { 
+                match writeln!(file, "{0}", serde_json::to_string(&task).unwrap()) { 
                     Ok(_value) => println!("added new task {:?}", task),
                     Err(error) => eprintln!("failed to write new task, {error}")
                 };
@@ -28,7 +28,7 @@ pub mod db {
         return get_lines()
             .flatten()
             .into_iter()
-            .map(|line| Task::from_string(line))
+            .map(|line| serde_json::from_str(&line).unwrap())
             .collect();
     }
 

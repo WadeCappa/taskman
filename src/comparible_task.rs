@@ -2,6 +2,7 @@
 
 pub mod comparible_task {
     use core::cmp::Ordering;
+    use colored::Colorize;
 
     use crate::task::task::Task;
 
@@ -19,7 +20,7 @@ pub mod comparible_task {
         }
 
         pub fn as_string(&self) -> String {
-            return format!("{0}) {1} with score of {2}", self.index, self.task.as_string(), self.comparitor);
+            return format!("task {0} |\t{1}", self.index.to_string().red(), self.task.as_readible_string());
         }
     }
 
