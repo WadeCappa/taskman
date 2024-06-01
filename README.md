@@ -3,8 +3,8 @@ TaskMan is an implementation of a task sorting strategy that I've already implem
 # Todos
 ## v0
 - [x] Write new task
-- [ ] Show tasks
-    - [ ] tasks are always sorted on output, ranked by priority
+- [x] Show tasks
+    - [x] tasks are always sorted on output, ranked by priority
 - [ ] 'Write' mode, where you access the tasks directly with a text editor (this should just be a shortcut)
 - [ ] mark tasks complete
 
