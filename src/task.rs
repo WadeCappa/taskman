@@ -53,40 +53,43 @@ pub mod task {
             };
         }
 
-        pub fn as_row(&self, verbose: bool) -> String {
-            let name = &self.name;
-            let desc = match &self.desc {
-                Some(desc) => desc, 
-                None => "" 
+        pub fn as_row(&self, verbose: bool) -> Vec::<String> {
+            let name = self.name.to_string();
+            let desc : String = match &self.desc {
+                Some(v) => v.to_string(), 
+                None => "".to_string() 
             };
-            let status = &self.status;
-            let cost = &self.cost;
-            let priority = &self.priority;
-            let date = &self.date_created;
-            let deadline = match &self.deadline {
+            let status = self.status.to_string();
+            let cost = self.cost.to_string();
+            let priority = self.priority.to_string();
+            let date = self.date_created.to_rfc2822();
+            let deadline = match self.deadline {
                 Some(date) => date.to_rfc2822(),
                 None => String::from("")
             };
 
+            let mut res: Vec::<String> = vec![name, cost, priority, status, deadline];
+
             if verbose {
-                return format!("{0: <10}, {1: <10}, {2: <10}, {3: <10}, {4: <10}, {5: <10}, {6: <10}", 
-                    name,
-                    desc,
-                    status,
-                    cost,
-                    priority,
-                    date,
-                    deadline,
-                );
-            } else {
-                return format!("{0: <10}, {1: <10}, {2: <10}, {3: <10}, {4: <10}", 
-                    name,
-                    status,
-                    cost,
-                    priority,
-                    deadline,
-                );
+                res.push(desc);
+                res.push(date);
+            } 
+
+            return res;
+        }
+
+        pub fn get_cols(verbose: bool) -> Vec::<String> {
+            let mut res: Vec::<String> = vec!["name", "cost", "priority", "status", "deadline"]
+                .into_iter()
+                .map(|str| str.to_string())
+                .collect();
+
+            if verbose {
+                res.push("description".to_string());
+                res.push("date_created".to_string());
             }
+
+            return res;
         }
 
         pub fn make_comparible(tasks: Vec::<Task>) -> Vec::<ComparibleTask> {
@@ -103,6 +106,7 @@ pub mod task {
                 .collect();
 
             comp_tasks.sort();
+            comp_tasks.reverse();
             return comp_tasks;
         }
 

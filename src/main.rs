@@ -2,7 +2,7 @@ use clap::{arg, ArgAction, ArgMatches, Command};
 use task::task::Status;
 use std::string::String;
 use std::option::Option;
-use std::collections::BinaryHeap;
+use tabled::{builder::Builder, settings::Style};
 use chrono::{DateTime, FixedOffset, Local};
 
 use crate::task::task::Task;
@@ -104,10 +104,15 @@ fn show(args: &ArgMatches) {
 
     let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total);
     let verbose: bool = args.get_flag("verbose");
-    let table = ComparibleTask::as_table(tasks, verbose);
-    for row in table {
-        println!("{row}");
-    }
+
+    let mut builder = Builder::default();
+
+    ComparibleTask::add_tasks_to_table(tasks, &mut builder, verbose);
+
+    let mut table = builder.build();
+    table.with(Style::ascii_rounded());
+
+    println!("{table}");
 }
 
 fn main() {
