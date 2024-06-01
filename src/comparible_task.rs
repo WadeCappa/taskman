@@ -21,8 +21,21 @@ pub mod comparible_task {
             };
         }
 
-        pub fn as_string(&self) -> String {
-            return format!("task {0} |\t{1}", self.index.to_string().red(), self.task.as_readible_string());
+        pub fn as_table(tasks: Vec::<ComparibleTask>, verbose: bool) -> Vec::<String>{
+            return tasks.into_iter().map(|task| task.as_row(verbose)).collect();
+        }
+
+        fn as_row(&self, verbose: bool) -> String {
+            let index_string = self.index.to_string().red();
+            let task_string = match verbose {
+                true => format!("task {0} with score {1} | ", index_string, &self.comparitor),
+                false => format!("task {0} | ", index_string)
+            };
+
+            return format!("{0: <10} {1}", 
+                task_string,
+                self.task.as_row(verbose)
+            );
         }
     }
 

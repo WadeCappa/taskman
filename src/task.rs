@@ -3,7 +3,6 @@
 pub mod task {
     use std::fmt::Debug;
     use chrono::{DateTime, FixedOffset};
-    use std::collections::BinaryHeap;
     use chrono::Local;
     use serde::{Deserialize, Serialize};
 
@@ -54,38 +53,57 @@ pub mod task {
             };
         }
 
-        pub fn as_readible_string(&self) -> String {
-            return format!("{0}, {1}, {2}, {3}, {4}, {5}, {6}", 
-                self.name, 
-                match &self.desc {
-                    Some(desc) => desc, 
-                    None => "" 
-                },
-                self.status,
-                self.cost, 
-                self.priority, 
-                self.date_created.to_rfc2822(), 
-                match self.deadline {
-                    Some(date) => date.to_rfc2822(),
-                    None => String::from("")
-                }
-            );
+        pub fn as_row(&self, verbose: bool) -> String {
+            let name = &self.name;
+            let desc = match &self.desc {
+                Some(desc) => desc, 
+                None => "" 
+            };
+            let status = &self.status;
+            let cost = &self.cost;
+            let priority = &self.priority;
+            let date = &self.date_created;
+            let deadline = match &self.deadline {
+                Some(date) => date.to_rfc2822(),
+                None => String::from("")
+            };
+
+            if verbose {
+                return format!("{0: <10}, {1: <10}, {2: <10}, {3: <10}, {4: <10}, {5: <10}, {6: <10}", 
+                    name,
+                    desc,
+                    status,
+                    cost,
+                    priority,
+                    date,
+                    deadline,
+                );
+            } else {
+                return format!("{0: <10}, {1: <10}, {2: <10}, {3: <10}, {4: <10}", 
+                    name,
+                    status,
+                    cost,
+                    priority,
+                    deadline,
+                );
+            }
         }
 
-        pub fn make_comparible(tasks: Vec::<Task>) -> BinaryHeap::<ComparibleTask> {
+        pub fn make_comparible(tasks: Vec::<Task>) -> Vec::<ComparibleTask> {
             let tasks_ref = &tasks;
             let total_prio_squared: u32 = tasks_ref 
                 .into_iter()
                 .map(|task: &Task| task.priority)
                 .fold(0, |acc, e| acc + e.pow(2));
 
-            let mut heap = BinaryHeap::new();
+            let mut comp_tasks: Vec::<ComparibleTask> = tasks
+                .into_iter()
+                .enumerate()
+                .map(|(i, task)| task.as_comparible_task(total_prio_squared, i))
+                .collect();
 
-            for (i, task) in tasks.into_iter().enumerate() {
-                heap.push(task.as_comparible_task(total_prio_squared, i));
-            }
-;
-            return heap;
+            comp_tasks.sort();
+            return comp_tasks;
         }
 
         fn as_comparible_task(self, total_prio_squared: u32, index: usize) -> ComparibleTask {

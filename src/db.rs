@@ -1,5 +1,5 @@
 pub mod db {
-    use crate::task::task::Task;
+    use crate::{comparible_task::comparible_task::ComparibleTask, task::task::Task};
     use std::fs;
     use dirs::home_dir;
 
@@ -26,15 +26,21 @@ pub mod db {
         }
     }
 
-    pub fn get_tasks() -> Vec::<Task> {
+    pub fn get_tasks(total_to_get: usize) -> Vec::<ComparibleTask> {
         let mut path = home_dir().unwrap();
         path.push(APP_DATA);
         let file = fs::File::open(path).unwrap();
-        return csv::ReaderBuilder::new()
+        let tasks: Vec::<Task> = csv::ReaderBuilder::new()
             .has_headers(false)
             .from_reader(file)
             .deserialize()
             .map(|record| record.unwrap())
+            .collect();
+
+        let return_size = usize::min(total_to_get, tasks.len());
+
+        return Task::make_comparible(tasks)
+            .drain(..return_size)
             .collect();
     }
 }

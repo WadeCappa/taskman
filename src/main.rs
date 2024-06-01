@@ -97,17 +97,16 @@ fn complete(args: &ArgMatches) {
 }
 
 fn show(args: &ArgMatches) {
-    let tasks: Vec::<Task> = crate::db::db::get_tasks();
-    let mut comparible_tasks: BinaryHeap::<ComparibleTask> = Task::make_comparible(tasks);
-
     let total = match args.get_flag("all") {
-        true => comparible_tasks.len(),
-        false => usize::min(get_u32_arg(args, "number") as usize, comparible_tasks.len())
+        true => usize::MAX,
+        false => get_u32_arg(args, "number") as usize
     };
 
-    for i in 0..total {
-        let task: ComparibleTask = comparible_tasks.pop().unwrap();
-        println!("{0}", task.as_string());
+    let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total);
+    let verbose: bool = args.get_flag("verbose");
+    let table = ComparibleTask::as_table(tasks, verbose);
+    for row in table {
+        println!("{row}");
     }
 }
 
