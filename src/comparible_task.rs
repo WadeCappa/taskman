@@ -3,9 +3,11 @@
 pub mod comparible_task {
     use core::cmp::Ordering;
     use colored::Colorize;
+    use serde::{Deserialize, Serialize};
 
     use crate::task::task::Task;
 
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct ComparibleTask {
         task: Task,
         index: usize,
