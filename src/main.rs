@@ -1,4 +1,5 @@
-use clap::{arg, ArgAction, ArgMatches, Command};
+use clap::{arg, ArgAction, ArgMatches, Command, Arg};
+use std::any::Any;
 use std::string::String;
 use std::option::Option;
 use tabled::{builder::Builder, settings::Style};
@@ -15,8 +16,8 @@ fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
     return String::from(args.get_one::<String>(arg_name).unwrap());
 }
 
-fn get_u32_arg(args: &ArgMatches, arg_name: &str) -> u32 { 
-    return *args.get_one::<u32>(arg_name).unwrap(); 
+fn get_num_arg<T: Any + Clone + Send + Sync + Copy>(args: &ArgMatches, arg_name: &str) -> T {
+    return *args.get_one::<T>(arg_name).unwrap(); 
 }
 
 fn append_midnight_if_no_time(date_maybe_time: String) -> String {
@@ -67,8 +68,8 @@ fn get_optional<T>(
 
 fn build_task(args: &ArgMatches) -> Task {
     let name = get_string_arg(args, "name");
-    let cost = get_u32_arg(args, "cost");
-    let priority = get_u32_arg(args, "priority");
+    let cost = get_num_arg::<u32>(args, "cost");
+    let priority = get_num_arg::<u32>(args, "priority");
     let deadline = get_optional::<DateTime::<FixedOffset>>(
         args,
         "deadline",
@@ -89,17 +90,19 @@ fn add(args: &ArgMatches) {
 fn delete(args: &ArgMatches) {
 }
 
-fn mark(args: &ArgMatches) {
-
+fn complete(args: &ArgMatches) {
+    let id = get_num_arg::<usize>(args, "taskId");
+    crate::db::db::mark_complete(id);
 }
 
 fn show(args: &ArgMatches) {
     let total = match args.get_flag("all") {
         true => usize::MAX,
-        false => get_u32_arg(args, "number") as usize
+        false => get_num_arg::<usize>(args, "number")
     };
 
-    let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total);
+    let show_completed = args.get_flag("completed");
+    let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total, show_completed);
 
     let verbose: bool = args.get_flag("verbose");
     let mut builder = Builder::default();
@@ -138,13 +141,21 @@ fn main() {
                 .action(ArgAction::Set))
             )
         .subcommand(Command::new("delete").about(""))
-        .subcommand(Command::new("mark").about("mark the status of a task"))
+        .subcommand(Command::new("complete")
+            .about("mark a task completed by index")
+            .arg(Arg::new("taskId")
+                .help("the id of the task to mark complete, where the task id is in the left-most column")
+                .action(ArgAction::Set)
+                .required(true)
+                .value_parser(clap::value_parser!(usize))))
         .subcommand(Command::new("show").about("display tasks")
             .arg(arg!(-n --number "number of tasks to show")
                 .default_value("5")
-                .value_parser(clap::value_parser!(u32))
+                .value_parser(clap::value_parser!(usize))
                 .action(ArgAction::Set))
             .arg(arg!(-a --all "show all tasks")
+                .action(ArgAction::SetTrue))
+            .arg(arg!(-c --completed "show completed tasks")
                 .action(ArgAction::SetTrue))
             .arg(arg!(-v --verbose "show all task information")
                 .action(ArgAction::SetTrue))
@@ -154,7 +165,7 @@ fn main() {
     match matches.subcommand() {
         Some(("add", matches)) => add(matches), 
         Some(("delete", matches)) => delete(matches), 
-        Some(("mark", matches)) => mark(matches), 
+        Some(("complete", matches)) => complete(matches), 
         Some(("show", matches)) => show(matches), 
         _ => unreachable!("clap should ensure that we don't get here"),
     };

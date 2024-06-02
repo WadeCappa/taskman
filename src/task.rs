@@ -47,6 +47,10 @@ pub mod task {
             };
         }
 
+        pub fn complete(&mut self) {
+            self.date_completed = Some(DateTime::from(Local::now()));
+        }
+
         pub fn as_row(&self, verbose: bool) -> Vec::<String> {
             let name = self.name.to_string();
             let desc : String = match &self.desc {
@@ -96,7 +100,12 @@ pub mod task {
                 .collect();
         }
 
-        pub fn make_comparible(tasks: Vec::<Task>) -> Vec::<ComparibleTask> {
+        pub fn make_comparible(tasks: Vec::<Task>, include_completed: bool) -> Vec::<ComparibleTask> {
+            let tasks: Vec<Task> = tasks
+                .into_iter()
+                .filter(|task| task.date_completed.is_none() || include_completed)
+                .collect();
+
             let tasks_ref = &tasks;
             let total_prio_squared: u32 = tasks_ref 
                 .into_iter()
