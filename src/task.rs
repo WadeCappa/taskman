@@ -7,12 +7,7 @@ pub mod task {
     use serde::{Deserialize, Serialize};
 
     use crate::comparible_task::comparible_task::ComparibleTask;
-
-    #[derive(PartialEq)]
-    pub enum ShouldShow {
-        Verbose,
-        Required
-    }
+    use crate::show_rule::show_rule::ShowRule;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Task {
@@ -51,7 +46,7 @@ pub mod task {
             self.date_completed = Some(DateTime::from(Local::now()));
         }
 
-        pub fn as_row(&self, verbose: bool) -> Vec::<String> {
+        pub fn as_row(&self, show_rule: &ShowRule) -> Vec::<String> {
             let name = self.name.to_string();
             let desc : String = match &self.desc {
                 Some(v) => v.to_string(), 
@@ -63,7 +58,7 @@ pub mod task {
             let deadline = Task::optional_time_as_string(&self.deadline);
             let completed = Task::optional_time_as_string(&self.date_completed);
 
-            let cols = Task::get_cols(verbose);
+            let cols = Task::get_cols(show_rule);
             let mut res: Vec::<String> = vec![];
 
             for col in cols.into_iter() {
@@ -82,20 +77,20 @@ pub mod task {
             return res;
         }
 
-        pub fn get_cols(verbose: bool) -> Vec::<&'static str> {
-            let col_to_print: Vec<(&str, ShouldShow)> = Vec::from([
-                ("task", ShouldShow::Required), 
-                ("desc", ShouldShow::Verbose),
-                ("cost", ShouldShow::Verbose),
-                ("priority", ShouldShow::Verbose), 
-                ("completed", ShouldShow::Verbose), 
-                ("deadline", ShouldShow::Required), 
-                ("created", ShouldShow::Verbose) 
+        pub fn get_cols(show_rule: &ShowRule) -> Vec::<&'static str> {
+            let col_to_print: Vec<(&str, ShowRule)> = Vec::from([
+                ("task", ShowRule::Required), 
+                ("desc", ShowRule::Verbose),
+                ("cost", ShowRule::Verbose),
+                ("priority", ShowRule::Verbose), 
+                ("completed", ShowRule::Complete), 
+                ("deadline", ShowRule::Required), 
+                ("created", ShowRule::Verbose) 
             ]);
 
             return col_to_print
                 .into_iter()
-                .filter(|(_key, val)| val == &ShouldShow::Required || (verbose && val == &ShouldShow::Verbose))
+                .filter(|(_key, val)| val >= show_rule)
                 .map(|(key, _val)| key)
                 .collect();
         }

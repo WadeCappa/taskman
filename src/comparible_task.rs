@@ -6,6 +6,7 @@ pub mod comparible_task {
     use tabled::builder::Builder;
 
     use crate::task::task::Task;
+    use crate::show_rule::show_rule::ShowRule;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct ComparibleTask {
@@ -24,26 +25,26 @@ pub mod comparible_task {
         pub fn add_tasks_to_table(
             tasks: Vec::<ComparibleTask>,
             builder: & mut Builder, 
-            verbose: bool
+            show_rule: &ShowRule
         ) {
-            builder.push_record(ComparibleTask::get_cols(verbose));
+            builder.push_record(ComparibleTask::get_cols(show_rule));
             for task in &tasks {
-                builder.push_record(task.to_row(verbose));
+                builder.push_record(task.to_row(show_rule));
             }
         }
 
-        fn get_cols(verbose: bool) -> Vec::<&'static str> {
+        fn get_cols(show_rule: &ShowRule) -> Vec::<&'static str> {
             let mut res: Vec::<&str> = vec![""];
-            res.append(&mut Task::get_cols(verbose));
+            res.append(&mut Task::get_cols(show_rule));
             res.push("score");
 
             return res;
         }
 
-        fn to_row(&self, verbose: bool) -> Vec::<String> {
+        fn to_row(&self, show_rule: &ShowRule) -> Vec::<String> {
             let mut res: Vec::<String> = vec![self.index.to_string()];
 
-            let mut task_vals: Vec::<String> = self.task.as_row(verbose);
+            let mut task_vals: Vec::<String> = self.task.as_row(show_rule);
 
             res.append(&mut task_vals);
             res.push(self.comparitor.to_string());

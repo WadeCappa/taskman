@@ -7,10 +7,12 @@ use chrono::{DateTime, FixedOffset, Local};
 
 use crate::task::task::Task;
 use crate::comparible_task::comparible_task::ComparibleTask;
+use crate::show_rule::show_rule::ShowRule;
 
 mod task;
 mod comparible_task;
 mod db;
+mod show_rule;
 
 fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
     return String::from(args.get_one::<String>(arg_name).unwrap());
@@ -107,7 +109,8 @@ fn show(args: &ArgMatches) {
     let verbose: bool = args.get_flag("verbose");
     let mut builder = Builder::default();
 
-    ComparibleTask::add_tasks_to_table(tasks, &mut builder, verbose);
+    let show_rule = ShowRule::from(verbose, show_completed);
+    ComparibleTask::add_tasks_to_table(tasks, &mut builder, &show_rule);
 
     let mut table = builder.build();
     table.with(Style::ascii_rounded());
