@@ -12,8 +12,6 @@ mod task;
 mod comparible_task;
 mod db;
 
-const DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.f";
-
 fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
     return String::from(args.get_one::<String>(arg_name).unwrap());
 }
@@ -93,7 +91,8 @@ fn add(args: &ArgMatches) {
 fn delete(args: &ArgMatches) {
 }
 
-fn complete(args: &ArgMatches) {
+fn mark(args: &ArgMatches) {
+
 }
 
 fn show(args: &ArgMatches) {
@@ -103,8 +102,8 @@ fn show(args: &ArgMatches) {
     };
 
     let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total);
-    let verbose: bool = args.get_flag("verbose");
 
+    let verbose: bool = args.get_flag("verbose");
     let mut builder = Builder::default();
 
     ComparibleTask::add_tasks_to_table(tasks, &mut builder, verbose);
@@ -136,12 +135,12 @@ fn main() {
                 .value_parser(clap::value_parser!(u32)))
             .arg(arg!(-d --deadline
                     "when this task needs to be completed, in format 
-                    yyyy-dd-mmThh::mm::ss in military time (always assumes local timezone)"
+                    yyyy-mm-ddThh::mm::ss in military time (always assumes local timezone)"
                 )
                 .action(ArgAction::Set))
             )
         .subcommand(Command::new("delete").about(""))
-        .subcommand(Command::new("complete").about(""))
+        .subcommand(Command::new("mark").about("mark the status of a task"))
         .subcommand(Command::new("show").about("display tasks")
             .arg(arg!(-n --number "number of tasks to show")
                 .default_value("5")
@@ -157,7 +156,7 @@ fn main() {
     match matches.subcommand() {
         Some(("add", matches)) => add(matches), 
         Some(("delete", matches)) => delete(matches), 
-        Some(("complete", matches)) => complete(matches), 
+        Some(("mark", matches)) => mark(matches), 
         Some(("show", matches)) => show(matches), 
         _ => unreachable!("clap should ensure that we don't get here"),
     };

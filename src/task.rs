@@ -5,10 +5,11 @@ pub mod task {
     use chrono::{DateTime, FixedOffset};
     use chrono::Local;
     use serde::{Deserialize, Serialize};
+    use clap::ValueEnum;
 
     use crate::comparible_task::comparible_task::ComparibleTask;
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, ValueEnum, Clone)]
     pub enum Status {
         InProgress,
         Completed, 
@@ -119,7 +120,8 @@ pub mod task {
                 let now = Local::now();
                 let calc_time = self.deadline.unwrap().signed_duration_since(now).num_minutes();
                 let minutes: i64 = Ord::max(calc_time, 1);
-                return ComparibleTask::new(self, roi + (60.0 / minutes as f64), index);
+                let comparitor = roi + (f64::from(self.cost) / minutes as f64);
+                return ComparibleTask::new(self, comparitor, index);
             }
         }
     }

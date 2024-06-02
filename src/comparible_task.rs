@@ -2,7 +2,6 @@
 
 pub mod comparible_task {
     use core::cmp::Ordering;
-    use colored::Colorize;
     use serde::{Deserialize, Serialize};
     use tabled::builder::Builder;
 
@@ -28,7 +27,7 @@ pub mod comparible_task {
             verbose: bool
         ) {
             builder.push_record(ComparibleTask::get_cols(verbose));
-            for task in tasks {
+            for task in &tasks {
                 builder.push_record(task.to_row(verbose));
             }
         }
@@ -52,10 +51,7 @@ pub mod comparible_task {
             let mut task_vals: Vec::<String> = self.task.as_row(verbose);
 
             res.append(&mut task_vals);
-
-            if verbose {
-                res.push(self.comparitor.to_string());
-            }
+            res.push(self.comparitor.to_string());
 
             return res;
         }
