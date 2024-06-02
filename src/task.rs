@@ -5,52 +5,45 @@ pub mod task {
     use chrono::{DateTime, FixedOffset};
     use chrono::Local;
     use serde::{Deserialize, Serialize};
-    use clap::ValueEnum;
 
     use crate::comparible_task::comparible_task::ComparibleTask;
 
-    #[derive(Serialize, Deserialize, Debug, ValueEnum, Clone)]
-    pub enum Status {
-        InProgress,
-        Completed, 
-        Queued 
-    }
-
-    impl std::fmt::Display for Status {
-        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            write!(f, "{:?}", self)
-        }
+    #[derive(PartialEq)]
+    pub enum ShouldShow {
+        Verbose,
+        Required
     }
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Task {
-        status: Status,
         name: String,
         desc: Option<String>,
         cost: u32,
         priority: u32,
         date_created: DateTime::<FixedOffset>,
+        date_completed: Option<DateTime::<FixedOffset>>,
         deadline: Option<DateTime::<FixedOffset>>,
     }
 
     impl Task {
         pub fn new(
-            status: Status, 
             name: String, 
             desc: Option<String>,
             cost: u32, 
             priority: u32, 
             date_created: DateTime::<FixedOffset>,
+            date_completed: Option<DateTime::<FixedOffset>>,
             deadline: Option<DateTime::<FixedOffset>>
         ) -> Task {
             return Task {
-                status: status,
-                name: name,
-                desc: desc,
-                cost: cost,
-                priority: priority,
-                date_created: date_created,
-                deadline: deadline
+                name, desc, cost, priority, date_created, date_completed, deadline
+            };
+        }
+
+        fn optional_time_as_string(time: &Option<DateTime::<FixedOffset>>) -> String {
+            return match time {
+                Some(date) => date.to_rfc2822(),
+                None => String::from("")
             };
         }
 
@@ -60,37 +53,47 @@ pub mod task {
                 Some(v) => v.to_string(), 
                 None => "".to_string() 
             };
-            let status = self.status.to_string();
             let cost = self.cost.to_string();
             let priority = self.priority.to_string();
             let date = self.date_created.to_rfc2822();
-            let deadline = match self.deadline {
-                Some(date) => date.to_rfc2822(),
-                None => String::from("")
-            };
+            let deadline = Task::optional_time_as_string(&self.deadline);
+            let completed = Task::optional_time_as_string(&self.date_completed);
 
-            let mut res: Vec::<String> = vec![name, cost, priority, status, deadline];
+            let cols = Task::get_cols(verbose);
+            let mut res: Vec::<String> = vec![];
 
-            if verbose {
-                res.push(desc);
-                res.push(date);
-            } 
+            for col in cols.into_iter() {
+                match col {
+                    "task" => res.push(name.to_string()),
+                    "desc" => res.push(desc.to_string()),
+                    "cost" => res.push(cost.to_string()),
+                    "priority" => res.push(priority.to_string()),
+                    "deadline" => res.push(deadline.to_string()),
+                    "completed"  => res.push(completed.to_string()),
+                    "created" => res.push(date.to_string()),
+                    _ => unreachable!("unrecognized col")
+                }
+            }
 
             return res;
         }
 
-        pub fn get_cols(verbose: bool) -> Vec::<String> {
-            let mut res: Vec::<String> = vec!["name", "cost", "priority", "status", "deadline"]
+        pub fn get_cols(verbose: bool) -> Vec::<&'static str> {
+            let col_to_print: Vec<(&str, ShouldShow)> = Vec::from([
+                ("task", ShouldShow::Required), 
+                ("desc", ShouldShow::Verbose),
+                ("cost", ShouldShow::Verbose),
+                ("priority", ShouldShow::Verbose), 
+                ("completed", ShouldShow::Verbose), 
+                ("deadline", ShouldShow::Required), 
+                ("created", ShouldShow::Verbose) 
+            ]);
+
+            return col_to_print
                 .into_iter()
-                .map(|str| str.to_string())
+                .filter(|(_key, val)| val == &ShouldShow::Required || (verbose && val == &ShouldShow::Verbose))
+                .map(|(key, _val)| key)
                 .collect();
-
-            if verbose {
-                res.push("description".to_string());
-                res.push("date_created".to_string());
-            }
-
-            return res;
         }
 
         pub fn make_comparible(tasks: Vec::<Task>) -> Vec::<ComparibleTask> {

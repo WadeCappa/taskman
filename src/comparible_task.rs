@@ -32,15 +32,10 @@ pub mod comparible_task {
             }
         }
 
-        fn get_cols(verbose: bool) -> Vec::<String> {
-            let mut res: Vec::<String> = vec!["index".to_string()];
-            let mut task_cols: Vec::<String> = Task::get_cols(verbose);
-
-            res.append(&mut task_cols);
-
-            if verbose {
-                res.push("score".to_string());
-            }
+        fn get_cols(verbose: bool) -> Vec::<&'static str> {
+            let mut res: Vec::<&str> = vec![""];
+            res.append(&mut Task::get_cols(verbose));
+            res.push("score");
 
             return res;
         }

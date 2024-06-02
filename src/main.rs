@@ -1,5 +1,4 @@
 use clap::{arg, ArgAction, ArgMatches, Command};
-use task::task::Status;
 use std::string::String;
 use std::option::Option;
 use tabled::{builder::Builder, settings::Style};
@@ -77,10 +76,9 @@ fn build_task(args: &ArgMatches) -> Task {
     );
 
     let desc = get_optional::<String>(args, "description", &get_string_arg);
-    let completed = Status::Queued;
     let date_created = DateTime::from(Local::now());
 
-    return Task::new(completed, name, desc, cost, priority, date_created, deadline);
+    return Task::new(name, desc, cost, priority, date_created, None, deadline);
 }
 
 fn add(args: &ArgMatches) {
