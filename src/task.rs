@@ -81,8 +81,8 @@ pub mod task {
             let col_to_print: Vec<(&str, ShowRule)> = Vec::from([
                 ("task", ShowRule::Required), 
                 ("desc", ShowRule::Verbose),
-                ("cost", ShowRule::Verbose),
-                ("priority", ShowRule::Verbose), 
+                ("cost", ShowRule::Required),
+                ("priority", ShowRule::Required), 
                 ("completed", ShowRule::Complete), 
                 ("deadline", ShowRule::Required), 
                 ("created", ShowRule::Verbose) 
@@ -95,12 +95,7 @@ pub mod task {
                 .collect();
         }
 
-        pub fn make_comparible(tasks: Vec::<Task>, include_completed: bool) -> Vec::<ComparibleTask> {
-            let tasks: Vec<Task> = tasks
-                .into_iter()
-                .filter(|task| task.date_completed.is_none() || include_completed)
-                .collect();
-
+        pub fn make_comparible(tasks: Vec::<Task>) -> Vec::<ComparibleTask> {
             let tasks_ref = &tasks;
             let total_prio_squared: u32 = tasks_ref 
                 .into_iter()
