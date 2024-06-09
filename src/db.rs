@@ -13,14 +13,19 @@ pub mod db {
         write_tasks(get_active_path(), tasks, true);
     }
 
+    pub fn get_completed_tasks(
+        total_to_get: usize
+    ) -> Vec::<Task> {
+        let path = get_archive_path();
+        let mut tasks: Vec<Task> = get_raw_tasks(path);
+        let return_size = usize::min(total_to_get, tasks.len());
+        return tasks.drain(..return_size).collect();
+    }
+
     pub fn get_tasks(
-        total_to_get: usize, 
-        show_completed: bool
+        total_to_get: usize
     ) -> Vec::<ComparibleTask> {
-        let path = match show_completed {
-            true => get_archive_path(),
-            false => get_active_path()
-        };
+        let path = get_active_path();
 
         let tasks: Vec<Task> = get_raw_tasks(path);
         let mut comp_tasks: Vec<ComparibleTask> = Task::make_comparible(tasks);
@@ -64,7 +69,12 @@ pub mod db {
     }
 
     fn write_tasks(path: PathBuf, tasks: Vec<Task>, append: bool) {
-        match fs::OpenOptions::new().create(true).write(true).append(append).open(path.as_path()) {
+        match fs::OpenOptions::new()
+            .truncate(!append)
+            .create(true)
+            .write(true)
+            .append(append)
+            .open(path.as_path()) {
             Ok(file) => {
                 let mut wtr = csv::WriterBuilder::new()
                     .has_headers(false)

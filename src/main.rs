@@ -89,9 +89,6 @@ fn add(args: &ArgMatches) {
     crate::db::db::write_task(task);
 }
 
-fn delete(args: &ArgMatches) {
-}
-
 fn complete(args: &ArgMatches) {
     let id = get_num_arg::<usize>(args, "taskId");
     crate::db::db::mark_complete(id);
@@ -104,12 +101,35 @@ fn show(args: &ArgMatches) {
     };
 
     let show_completed = args.get_flag("completed");
-    let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total, show_completed);
-
     let verbose: bool = args.get_flag("verbose");
-    let mut builder = Builder::default();
-
     let show_rule = ShowRule::from(verbose, show_completed);
+    if show_completed {
+        output_completed(total, show_rule);
+    } else {
+        output_todo(total, show_rule);
+    }
+}
+
+fn output_completed(total: usize, show_rule: ShowRule) {
+    let tasks: Vec::<Task> = crate::db::db::get_completed_tasks(total);
+
+    let mut builder = Builder::default();
+    builder.push_record(Task::get_cols(&show_rule));
+    for task in &tasks {
+        builder.push_record(task.as_row(&show_rule));
+    }
+
+    let mut table = builder.build();
+    table.with(Style::ascii_rounded());
+
+    println!("{table}");
+
+}
+
+fn output_todo(total: usize, show_rule: ShowRule) {
+    let tasks: Vec::<ComparibleTask> = crate::db::db::get_tasks(total);
+
+    let mut builder = Builder::default();
     ComparibleTask::add_tasks_to_table(tasks, &mut builder, &show_rule);
 
     let mut table = builder.build();
@@ -143,7 +163,6 @@ fn main() {
                 )
                 .action(ArgAction::Set))
             )
-        .subcommand(Command::new("delete").about(""))
         .subcommand(Command::new("complete")
             .about("mark a task completed by index")
             .arg(Arg::new("taskId")
@@ -167,7 +186,6 @@ fn main() {
     let matches = cmd.get_matches();
     match matches.subcommand() {
         Some(("add", matches)) => add(matches), 
-        Some(("delete", matches)) => delete(matches), 
         Some(("complete", matches)) => complete(matches), 
         Some(("show", matches)) => show(matches), 
         _ => unreachable!("clap should ensure that we don't get here"),
