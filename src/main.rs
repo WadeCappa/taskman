@@ -94,6 +94,11 @@ fn complete(args: &ArgMatches) {
     crate::db::db::mark_complete(id);
 }
 
+fn delete(args: &ArgMatches) {
+    let id = get_num_arg::<usize>(args, "taskId");
+    crate::db::db::delete_task(id);
+}
+
 fn show(args: &ArgMatches) {
     let total = match args.get_flag("all") {
         true => usize::MAX,
@@ -170,6 +175,13 @@ fn main() {
                 .action(ArgAction::Set)
                 .required(true)
                 .value_parser(clap::value_parser!(usize))))
+        .subcommand(Command::new("delete")
+            .about("remove a task")
+            .arg(Arg::new("taskId")
+                .help("the id of the task to delete, where the task id is in the left-most column")
+                .action(ArgAction::Set)
+                .required(true)
+                .value_parser(clap::value_parser!(usize))))
         .subcommand(Command::new("show").about("display tasks")
             .arg(arg!(-n --number "number of tasks to show")
                 .default_value("5")
@@ -187,6 +199,7 @@ fn main() {
     match matches.subcommand() {
         Some(("add", matches)) => add(matches), 
         Some(("complete", matches)) => complete(matches), 
+        Some(("delete", matches)) => delete(matches), 
         Some(("show", matches)) => show(matches), 
         _ => unreachable!("clap should ensure that we don't get here"),
     };

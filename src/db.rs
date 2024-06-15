@@ -43,6 +43,15 @@ pub mod db {
         write_tasks(get_active_path(), tasks, false);
     }
 
+    pub fn delete_task(task_id: usize) {
+        let mut tasks = get_raw_tasks(get_active_path());
+        
+        // delete
+        tasks.remove(task_id);
+        write_tasks(get_active_path(), tasks, false);
+
+    }
+
     fn get_active_path() -> PathBuf {
         return get_path(ACTIVE_TASKS);
     }
