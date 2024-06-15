@@ -10,7 +10,7 @@ $$\frac{\textnormal{normalized priority}}{\textnormal{cost in minutes}} + \frac{
     - [x] tasks are always sorted on output, ranked by priority
 - [x] delete tasks
 - [x] mark tasks complete
-- [ ] install script 
+- [x] install script (simple with bash)
 
 ## v1
 - [ ] Reoccuring tasks
