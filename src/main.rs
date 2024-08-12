@@ -115,6 +115,10 @@ fn show(args: &ArgMatches) {
     }
 }
 
+fn triage(args: &ArgMatches) {
+
+}
+
 fn output_completed(total: usize, show_rule: ShowRule) {
     let tasks: Vec::<Task> = crate::db::db::get_completed_tasks(total);
 
@@ -144,9 +148,13 @@ fn output_todo(total: usize, show_rule: ShowRule) {
 }
 
 fn main() {
-    let cmd = clap::Command::new("cmd")
-        .subcommand_required(true)
-        .subcommand( Command::new("add")
+    let task_id_arg = Arg::new("taskId")
+                .help("the id of a task, where the task id is in the left-most column")
+                .action(ArgAction::Set)
+                .required(true)
+                .value_parser(clap::value_parser!(usize));
+
+    let add_subcommand =  Command::new("add")
             .about("add a new task")
             .arg(arg!(-n --name "name of the new task")
                 .required(true)
@@ -164,25 +172,18 @@ fn main() {
                 .value_parser(clap::value_parser!(u32)))
             .arg(arg!(-d --deadline
                     "when this task needs to be completed, in format 
-                    yyyy-mm-ddThh::mm::ss in military time (always assumes local timezone)"
-                )
-                .action(ArgAction::Set))
-            )
-        .subcommand(Command::new("complete")
+                    yyyy-mm-ddThh::mm::ss in military time (always assumes local timezone)")
+                .action(ArgAction::Set));
+
+    let complete_subcommand = Command::new("complete")
             .about("mark a task completed by index")
-            .arg(Arg::new("taskId")
-                .help("the id of the task to mark complete, where the task id is in the left-most column")
-                .action(ArgAction::Set)
-                .required(true)
-                .value_parser(clap::value_parser!(usize))))
-        .subcommand(Command::new("delete")
+            .arg(&task_id_arg);
+
+    let delete_subcommand = Command::new("delete")
             .about("remove a task")
-            .arg(Arg::new("taskId")
-                .help("the id of the task to delete, where the task id is in the left-most column")
-                .action(ArgAction::Set)
-                .required(true)
-                .value_parser(clap::value_parser!(usize))))
-        .subcommand(Command::new("show").about("display tasks")
+            .arg(&task_id_arg);
+
+    let show_subcommand = Command::new("show").about("display tasks")
             .arg(arg!(-n --number "number of tasks to show")
                 .default_value("5")
                 .value_parser(clap::value_parser!(usize))
@@ -192,8 +193,19 @@ fn main() {
             .arg(arg!(-c --completed "show completed tasks")
                 .action(ArgAction::SetTrue))
             .arg(arg!(-v --verbose "show all task information")
-                .action(ArgAction::SetTrue))
-            );
+                .action(ArgAction::SetTrue));
+
+    let triage_subcommand = Command::new("triage")
+            .about("archive a task")
+            .arg(&task_id_arg);
+
+    let cmd = clap::Command::new("cmd")
+        .subcommand_required(true)
+        .subcommand(add_subcommand)
+        .subcommand(complete_subcommand)
+        .subcommand(delete_subcommand)
+        .subcommand(show_subcommand)
+        .subcommand(triage_subcommand);
 
     let matches = cmd.get_matches();
     match matches.subcommand() {
@@ -201,6 +213,7 @@ fn main() {
         Some(("complete", matches)) => complete(matches), 
         Some(("delete", matches)) => delete(matches), 
         Some(("show", matches)) => show(matches), 
+        Some(("triage", matches)) => triage(matches), 
         _ => unreachable!("clap should ensure that we don't get here"),
     };
 }
