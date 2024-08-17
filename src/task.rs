@@ -11,6 +11,7 @@ pub mod task {
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Task {
+        id: i64,
         name: String,
         desc: Option<String>,
         cost: u32,
@@ -22,6 +23,7 @@ pub mod task {
 
     impl Task {
         pub fn new(
+            id: i64,
             name: String, 
             desc: Option<String>,
             cost: u32, 
@@ -31,7 +33,7 @@ pub mod task {
             deadline: Option<DateTime::<FixedOffset>>
         ) -> Task {
             return Task {
-                name, desc, cost, priority, date_created, date_completed, deadline
+                id, name, desc, cost, priority, date_created, date_completed, deadline
             };
         }
 
@@ -47,6 +49,7 @@ pub mod task {
         }
 
         pub fn as_row(&self, show_rule: &ShowRule) -> Vec::<String> {
+            let id = self.id.to_string();
             let name = self.name.to_string();
             let desc : String = match &self.desc {
                 Some(v) => v.to_string(), 
@@ -63,6 +66,7 @@ pub mod task {
 
             for col in cols.into_iter() {
                 match col {
+                    "id" => res.push(id.to_string()),
                     "task" => res.push(name.to_string()),
                     "desc" => res.push(desc.to_string()),
                     "cost" => res.push(cost.to_string()),
@@ -79,6 +83,7 @@ pub mod task {
 
         pub fn get_cols(show_rule: &ShowRule) -> Vec::<&'static str> {
             let col_to_print: Vec<(&str, ShowRule)> = Vec::from([
+                ("id", ShowRule::Required),
                 ("task", ShowRule::Required), 
                 ("desc", ShowRule::Verbose),
                 ("cost", ShowRule::Required),
@@ -104,8 +109,7 @@ pub mod task {
 
             let mut comp_tasks: Vec::<ComparibleTask> = tasks
                 .into_iter()
-                .enumerate()
-                .map(|(i, task)| task.as_comparible_task(total_prio_squared, i))
+                .map(|task| task.as_comparible_task(total_prio_squared))
                 .collect();
 
             comp_tasks.sort();
@@ -113,17 +117,21 @@ pub mod task {
             return comp_tasks;
         }
 
-        fn as_comparible_task(self, total_prio_squared: u32, index: usize) -> ComparibleTask {
+        pub fn get_id(&self) -> i64 {
+            return self.id;
+        }
+
+        fn as_comparible_task(self, total_prio_squared: u32) -> ComparibleTask {
             let normalized: f64 = f64::from(self.priority.pow(2)) / f64::from(total_prio_squared).sqrt();
             let roi : f64 = normalized / f64::from(self.cost);
             if self.deadline.is_none() {
-                return ComparibleTask::new(self, roi, index);
+                return ComparibleTask::new(self, roi);
             } else {
                 let now = Local::now();
                 let calc_time = self.deadline.unwrap().signed_duration_since(now).num_minutes();
                 let minutes: i64 = Ord::max(calc_time, 1);
                 let comparitor = roi + (f64::from(self.cost) / minutes as f64);
-                return ComparibleTask::new(self, comparitor, index);
+                return ComparibleTask::new(self, comparitor);
             }
         }
     }
