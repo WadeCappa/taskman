@@ -11,14 +11,13 @@ pub mod comparible_task {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct ComparibleTask {
         task: Task,
-        index: usize,
         comparitor: f64
     }
 
     impl ComparibleTask {
-        pub fn new(task: Task, comparitor: f64, index: usize) -> ComparibleTask {
+        pub fn new(task: Task, comparitor: f64) -> ComparibleTask {
             return ComparibleTask {
-                task, index, comparitor
+                task, comparitor
             };
         }
 
@@ -33,8 +32,12 @@ pub mod comparible_task {
             }
         }
 
+        pub fn get_id(&self) -> i64 {
+            return self.task.get_id();
+        }
+
         fn get_cols(show_rule: &ShowRule) -> Vec::<&'static str> {
-            let mut res: Vec::<&str> = vec![""];
+            let mut res: Vec::<&str> = vec![];
             res.append(&mut Task::get_cols(show_rule));
             res.push("score");
 
@@ -42,14 +45,9 @@ pub mod comparible_task {
         }
 
         fn to_row(&self, show_rule: &ShowRule) -> Vec::<String> {
-            let mut res: Vec::<String> = vec![self.index.to_string()];
-
             let mut task_vals: Vec::<String> = self.task.as_row(show_rule);
-
-            res.append(&mut task_vals);
-            res.push(self.comparitor.to_string());
-
-            return res;
+            task_vals.push(self.comparitor.to_string());
+            return task_vals;
         }
     }
 

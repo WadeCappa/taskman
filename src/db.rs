@@ -52,6 +52,17 @@ pub mod db {
 
     }
 
+    pub fn get_unique_id_unsafe() -> i64 {
+        // TODO: Race condition with getting ids, can end up with duplicate primary keys
+        let tasks = get_tasks(usize::MAX);
+        return match (&tasks).into_iter()
+            .map(ComparibleTask::get_id)
+            .reduce(std::cmp::max) {
+            Some(val) => val + 1,
+            None => 0
+        };
+    }
+
     fn get_active_path() -> PathBuf {
         return get_path(ACTIVE_TASKS);
     }

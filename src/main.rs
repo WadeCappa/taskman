@@ -80,8 +80,8 @@ fn build_task(args: &ArgMatches) -> Task {
 
     let desc = get_optional::<String>(args, "description", &get_string_arg);
     let date_created = DateTime::from(Local::now());
-
-    return Task::new(name, desc, cost, priority, date_created, None, deadline);
+    let id = db::db::get_unique_id_unsafe();
+    return Task::new(id, name, desc, cost, priority, date_created, None, deadline);
 }
 
 fn add(args: &ArgMatches) {
