@@ -5,7 +5,8 @@ pub mod db {
     use dirs::home_dir;
 
     const APP_DATA: &str = ".taskman/";
-    const ARCHIVE: &str = "archive.csv";
+    const COMPLETED: &str = "completed.csv";
+    const TRIAGED: &str = "triaged.csv";
     const ACTIVE_TASKS: &str = "tasks.csv";
 
     pub fn write_task(task: Task) {
@@ -16,7 +17,7 @@ pub mod db {
     pub fn get_completed_tasks(
         total_to_get: usize
     ) -> Vec::<Task> {
-        let path = get_archive_path();
+        let path = get_completed_path();
         let mut tasks: Vec<Task> = get_raw_tasks(path);
         let return_size = usize::min(total_to_get, tasks.len());
         return tasks.drain(..return_size).collect();
@@ -39,7 +40,7 @@ pub mod db {
         let mut tasks = get_raw_tasks(get_active_path());
         let mut completed: Task = tasks.remove(task_id);
         completed.complete();
-        write_tasks(get_archive_path(), vec![completed], true);
+        write_tasks(get_completed_path(), vec![completed], true);
         write_tasks(get_active_path(), tasks, false);
     }
 
@@ -56,8 +57,12 @@ pub mod db {
         return get_path(ACTIVE_TASKS);
     }
 
-    fn get_archive_path() -> PathBuf {
-        return get_path(ARCHIVE);
+    fn get_completed_path() -> PathBuf {
+        return get_path(COMPLETED);
+    }
+
+    fn get_triaged_path() -> PathBuf {
+        return get_path(TRIAGED);
     }
 
     fn get_path(file: &str) -> PathBuf {

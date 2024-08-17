@@ -116,7 +116,7 @@ fn show(args: &ArgMatches) {
 }
 
 fn triage(args: &ArgMatches) {
-
+    
 }
 
 fn output_completed(total: usize, show_rule: ShowRule) {
