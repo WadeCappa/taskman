@@ -68,7 +68,7 @@ fn get_optional<T>(
     }
 }
 
-fn build_task(args: &ArgMatches) -> Task {
+fn build_task(args: &ArgMatches, tasks: Vec<ComparibleTask>) -> Task {
     let name = get_string_arg(args, "name");
     let cost = get_num_arg::<u32>(args, "cost");
     let priority = get_num_arg::<u32>(args, "priority");
@@ -80,12 +80,18 @@ fn build_task(args: &ArgMatches) -> Task {
 
     let desc = get_optional::<String>(args, "description", &get_string_arg);
     let date_created = DateTime::from(Local::now());
-    let id = db::db::get_unique_id_unsafe();
+    let id = db::db::get_unique_id(tasks);
     return Task::new(id, name, desc, cost, priority, date_created, None, deadline);
 }
 
 fn add(args: &ArgMatches) {
-    let task: Task = build_task(args);
+    // Race condition between fetching all old tasks from the db and 
+    //  appending the new task to the db. This can cause two tasks 
+    //  to have the same primary key. If this is every a problem 
+    //  it might be better to always write all tasks to the db instead 
+    //  of appending.
+    let tasks = crate::db::db::get_tasks(usize::MAX);
+    let task: Task = build_task(args, tasks);
     crate::db::db::write_task(task);
 }
 
