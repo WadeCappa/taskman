@@ -11,7 +11,7 @@ pub mod task {
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct Task {
-        id: i64,
+        id: usize,
         name: String,
         desc: Option<String>,
         cost: u32,
@@ -23,7 +23,7 @@ pub mod task {
 
     impl Task {
         pub fn new(
-            id: i64,
+            id: usize,
             name: String, 
             desc: Option<String>,
             cost: u32, 
@@ -117,8 +117,8 @@ pub mod task {
             return comp_tasks;
         }
 
-        pub fn get_id(&self) -> i64 {
-            return self.id;
+        pub fn get_id(&self) -> &usize {
+            return &self.id;
         }
 
         fn as_comparible_task(self, total_prio_squared: u32) -> ComparibleTask {

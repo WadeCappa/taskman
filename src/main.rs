@@ -14,6 +14,12 @@ mod comparible_task;
 mod db;
 mod show_rule;
 
+fn get_many_args(
+    args: &ArgMatches, 
+    arg_name: &str) -> Vec::<usize> {
+    return args.get_many::<usize>(arg_name).unwrap_or_default().map(|v| *v).collect::<Vec<_>>();
+}
+
 fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
     return String::from(args.get_one::<String>(arg_name).unwrap());
 }
@@ -101,8 +107,8 @@ fn complete(args: &ArgMatches) {
 }
 
 fn delete(args: &ArgMatches) {
-    let id = get_num_arg::<usize>(args, "taskId");
-    crate::db::db::delete_task(id);
+    let ids = get_many_args(args, "taskId");
+    crate::db::db::delete_tasks(ids);
 }
 
 fn show(args: &ArgMatches) {
@@ -150,57 +156,60 @@ fn output_todo(total: usize, show_rule: ShowRule) {
 }
 
 fn main() {
+    let task_id_arg = Arg::new("taskId")
+        .help("the ids of the tasks to affect")
+        .action(ArgAction::Set)
+        .required(true)
+        .num_args(1..)
+        .value_parser(clap::value_parser!(usize));
+
+    let add_subcommand =  Command::new("add")
+    .about("add a new task")
+        .arg(arg!(-n --name "name of the new task")
+            .required(true)
+            .action(ArgAction::Set))
+        .arg(arg!(-e --description "description of this task")
+            .action(ArgAction::Set))
+        .arg(arg!(-c --cost "the expected time in *minutes* that this task will take")
+            .action(ArgAction::Set)
+            .required(true)
+            .value_parser(clap::value_parser!(u32)))
+        .arg(arg!(-p --priority 
+                "an arbitrary number representing the importance of completing this task")
+            .action(ArgAction::Set)
+            .required(true)
+            .value_parser(clap::value_parser!(u32)))
+        .arg(arg!(-d --deadline "when this task needs to be completed, in format 
+                yyyy-mm-ddThh::mm::ss in military time (always assumes local timezone)")
+            .action(ArgAction::Set));
+
+    let complete_subcommand = Command::new("complete")
+        .about("mark a task completed by index")
+        .arg(&task_id_arg);
+
+    let delete_subcommand = Command::new("delete")
+        .about("remove a task")
+        .arg(&task_id_arg);
+
+    let show_subcommand = Command::new("show").about("display tasks")
+        .arg(arg!(-n --number "number of tasks to show")
+            .default_value("5")
+            .value_parser(clap::value_parser!(usize))
+            .action(ArgAction::Set))
+        .arg(arg!(-a --all "show all tasks")
+            .action(ArgAction::SetTrue))
+        .arg(arg!(-c --completed "show completed tasks")
+            .action(ArgAction::SetTrue))
+        .arg(arg!(-v --verbose "show all task information")
+            .action(ArgAction::SetTrue));
+        
     let cmd = clap::Command::new("cmd")
         .subcommand_required(true)
-        .subcommand( Command::new("add")
-            .about("add a new task")
-            .arg(arg!(-n --name "name of the new task")
-                .required(true)
-                .action(ArgAction::Set))
-            .arg(arg!(-e --description "description of this task")
-                .action(ArgAction::Set))
-            .arg(arg!(-c --cost "the expected time in *minutes* that this task will take")
-                .action(ArgAction::Set)
-                .required(true)
-                .value_parser(clap::value_parser!(u32)))
-            .arg(arg!(-p --priority 
-                    "an arbitrary number representing the importance of completing this task")
-                .action(ArgAction::Set)
-                .required(true)
-                .value_parser(clap::value_parser!(u32)))
-            .arg(arg!(-d --deadline
-                    "when this task needs to be completed, in format 
-                    yyyy-mm-ddThh::mm::ss in military time (always assumes local timezone)"
-                )
-                .action(ArgAction::Set))
-            )
-        .subcommand(Command::new("complete")
-            .about("mark a task completed by index")
-            .arg(Arg::new("taskId")
-                .help("the id of the task to mark complete, where the task id is in the left-most column")
-                .action(ArgAction::Set)
-                .required(true)
-                .value_parser(clap::value_parser!(usize))))
-        .subcommand(Command::new("delete")
-            .about("remove a task")
-            .arg(Arg::new("taskId")
-                .help("the id of the task to delete, where the task id is in the left-most column")
-                .action(ArgAction::Set)
-                .required(true)
-                .value_parser(clap::value_parser!(usize))))
-        .subcommand(Command::new("show").about("display tasks")
-            .arg(arg!(-n --number "number of tasks to show")
-                .default_value("5")
-                .value_parser(clap::value_parser!(usize))
-                .action(ArgAction::Set))
-            .arg(arg!(-a --all "show all tasks")
-                .action(ArgAction::SetTrue))
-            .arg(arg!(-c --completed "show completed tasks")
-                .action(ArgAction::SetTrue))
-            .arg(arg!(-v --verbose "show all task information")
-                .action(ArgAction::SetTrue))
-            );
-
+        .subcommand(add_subcommand)
+        .subcommand(complete_subcommand)
+        .subcommand(delete_subcommand)
+        .subcommand(show_subcommand);
+        
     let matches = cmd.get_matches();
     match matches.subcommand() {
         Some(("add", matches)) => add(matches), 

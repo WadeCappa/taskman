@@ -32,7 +32,7 @@ pub mod comparible_task {
             }
         }
 
-        pub fn get_id(&self) -> i64 {
+        pub fn get_id(&self) -> &usize {
             return self.task.get_id();
         }
 
