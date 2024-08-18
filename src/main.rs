@@ -14,6 +14,12 @@ mod comparible_task;
 mod db;
 mod show_rule;
 
+fn get_many_args(
+    args: &ArgMatches, 
+    arg_name: &str) -> Vec::<usize> {
+    return args.get_many::<usize>(arg_name).unwrap_or_default().map(|v| *v).collect::<Vec<_>>();
+}
+
 fn get_string_arg(args: &ArgMatches, arg_name: &str) -> String {
     return String::from(args.get_one::<String>(arg_name).unwrap());
 }
@@ -101,8 +107,9 @@ fn complete(args: &ArgMatches) {
 }
 
 fn delete(args: &ArgMatches) {
-    let id = get_num_arg::<usize>(args, "taskId");
-    crate::db::db::delete_task(id);
+    let ids = get_many_args(args, "taskId");
+    println!("{:?}", &ids);
+    crate::db::db::delete_tasks(ids);
 }
 
 fn show(args: &ArgMatches) {
@@ -187,6 +194,7 @@ fn main() {
                 .help("the id of the task to delete, where the task id is in the left-most column")
                 .action(ArgAction::Set)
                 .required(true)
+                .num_args(1..)
                 .value_parser(clap::value_parser!(usize))))
         .subcommand(Command::new("show").about("display tasks")
             .arg(arg!(-n --number "number of tasks to show")

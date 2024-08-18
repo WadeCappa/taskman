@@ -43,16 +43,16 @@ pub mod db {
         write_tasks(get_active_path(), tasks, false);
     }
 
-    pub fn delete_task(task_id: usize) {
-        let mut tasks = get_raw_tasks(get_active_path());
+    pub fn delete_tasks(task_ids: Vec::<usize>) {
+        let tasks = get_raw_tasks(get_active_path())
+            .into_iter()
+            .filter(|t| !task_ids.contains(t.get_id()))
+            .collect();
         
-        // delete
-        tasks.remove(task_id);
         write_tasks(get_active_path(), tasks, false);
-
     }
 
-    pub fn get_unique_id(old_tasks: Vec<ComparibleTask>) -> i64 {
+    pub fn get_unique_id(old_tasks: Vec<ComparibleTask>) -> usize {
         // TODO: Race condition with getting ids, can end up with duplicate primary keys
         return match (&old_tasks).into_iter()
             .map(ComparibleTask::get_id)
