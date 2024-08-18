@@ -66,7 +66,7 @@ pub mod db {
 
     pub fn get_unique_id() -> usize {
         let mut sequence_file = std::fs::OpenOptions::new()
-            .create(true)
+            .create(false)
             .write(true)
             .read(true)
             .open(get_path(ID_SEQUENCE))
