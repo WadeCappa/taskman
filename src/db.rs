@@ -1,16 +1,21 @@
 pub mod db {
     use crate::{comparible_task::comparible_task::ComparibleTask, task::task::Task};
+    extern crate fs2;
+
+    use fs2::FileExt;
     use std::fs;
     use std::path::PathBuf;
     use dirs::home_dir;
+    use std::io::{Read, Write, Seek, SeekFrom};
 
     const APP_DATA: &str = ".taskman/";
     const ARCHIVE: &str = "archive.csv";
     const ACTIVE_TASKS: &str = "tasks.csv";
+    const ID_SEQUENCE: &str = "id_sequence.txt";
 
     pub fn write_task(task: Task) {
         let tasks = vec![task];
-        write_tasks(get_active_path(), tasks, true);
+        write_tasks(get_active_tasks_path(), tasks, true);
     }
 
     pub fn get_completed_tasks(
@@ -25,7 +30,7 @@ pub mod db {
     pub fn get_tasks(
         total_to_get: usize
     ) -> Vec::<ComparibleTask> {
-        let path = get_active_path();
+        let path = get_active_tasks_path();
 
         let tasks: Vec<Task> = get_raw_tasks(path);
         let mut comp_tasks: Vec<ComparibleTask> = Task::make_comparible(tasks);
@@ -35,34 +40,54 @@ pub mod db {
             .collect();
     }
 
-    pub fn mark_complete(task_id: usize) {
-        let mut tasks = get_raw_tasks(get_active_path());
-        let mut completed: Task = tasks.remove(task_id);
-        completed.complete();
-        write_tasks(get_archive_path(), vec![completed], true);
-        write_tasks(get_active_path(), tasks, false);
+    pub fn mark_complete(task_ids: Vec::<usize>) {
+        let mut todo = Vec::<Task>::new();
+        let mut completed = Vec::<Task>::new();
+
+        for t in get_raw_tasks(get_active_tasks_path()) {
+            match task_ids.contains(t.get_id()) {
+                true => completed.push(t.complete()),
+                false => todo.push(t)
+            }
+        }
+
+        write_tasks(get_archive_path(), completed, true);
+        write_tasks(get_active_tasks_path(), todo, false);
     }
 
     pub fn delete_tasks(task_ids: Vec::<usize>) {
-        let tasks = get_raw_tasks(get_active_path())
+        let tasks = get_raw_tasks(get_active_tasks_path())
             .into_iter()
             .filter(|t| !task_ids.contains(t.get_id()))
             .collect();
         
-        write_tasks(get_active_path(), tasks, false);
+        write_tasks(get_active_tasks_path(), tasks, false);
     }
 
-    pub fn get_unique_id(old_tasks: Vec<ComparibleTask>) -> usize {
-        // TODO: Race condition with getting ids, can end up with duplicate primary keys
-        return match (&old_tasks).into_iter()
-            .map(ComparibleTask::get_id)
-            .reduce(std::cmp::max) {
-            Some(val) => val + 1,
-            None => 0
-        };
+    pub fn get_unique_id() -> usize {
+        let mut sequence_file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(get_path(ID_SEQUENCE))
+            .unwrap();
+        sequence_file.lock_exclusive().unwrap();
+
+        let mut buffer = Vec::<u8>::new();
+        sequence_file.read_to_end(&mut buffer).unwrap();
+        
+        let mut arr = [0; 8]; 
+        arr.copy_from_slice(&buffer[0..buffer.len()]);
+        let new_id = usize::from_ne_bytes(arr); 
+        let next_id = new_id + 1;
+
+        sequence_file.seek(SeekFrom::Start(0)).unwrap();
+        sequence_file.write_all(&next_id.to_ne_bytes()).unwrap();
+        sequence_file.unlock().unwrap();
+        return new_id;
     }
 
-    fn get_active_path() -> PathBuf {
+    fn get_active_tasks_path() -> PathBuf {
         return get_path(ACTIVE_TASKS);
     }
 

@@ -44,8 +44,9 @@ pub mod task {
             };
         }
 
-        pub fn complete(&mut self) {
+        pub fn complete(mut self) -> Task {
             self.date_completed = Some(DateTime::from(Local::now()));
+            return self;
         }
 
         pub fn as_row(&self, show_rule: &ShowRule) -> Vec::<String> {
