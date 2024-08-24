@@ -32,10 +32,6 @@ pub mod comparible_task {
             }
         }
 
-        pub fn get_id(&self) -> &usize {
-            return self.task.get_id();
-        }
-
         fn get_cols(show_rule: &ShowRule) -> Vec::<&'static str> {
             let mut res: Vec::<&str> = vec![];
             res.append(&mut Task::get_cols(show_rule));

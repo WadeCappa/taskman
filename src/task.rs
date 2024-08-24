@@ -67,7 +67,7 @@ pub mod task {
 
             for col in cols.into_iter() {
                 match col {
-                    "id" => res.push(id.to_string()),
+                    "" => res.push(id.to_string()),
                     "task" => res.push(name.to_string()),
                     "desc" => res.push(desc.to_string()),
                     "cost" => res.push(cost.to_string()),
@@ -84,7 +84,7 @@ pub mod task {
 
         pub fn get_cols(show_rule: &ShowRule) -> Vec::<&'static str> {
             let col_to_print: Vec<(&str, ShowRule)> = Vec::from([
-                ("id", ShowRule::Required),
+                ("", ShowRule::Required),
                 ("task", ShowRule::Required), 
                 ("desc", ShowRule::Verbose),
                 ("cost", ShowRule::Required),
